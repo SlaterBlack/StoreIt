@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   deleteTimeEntry,
   createTimeEntry,
+  importTimeEntries,
   listTimeEntries,
   startTimeEntry,
   stopTimeEntry,
@@ -13,6 +14,7 @@ const router = Router();
 
 router.use(requireAuth);
 router.get('/', listTimeEntries);
+router.post('/import', importTimeEntries);
 router.post('/', createTimeEntry);
 router.post('/start', startTimeEntry);
 router.post('/:id/stop', stopTimeEntry);
