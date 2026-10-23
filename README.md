@@ -30,8 +30,12 @@ its data contract is defined.
 4. Before importing existing data, run `npm run data:check`. It only reads the
    source databases. Import is an explicit `npm run data:migrate` operation.
 
+Each frontend has its own `frontend/.env` with `STOREIT_API_URL` for its local
+Angular development proxy. Copy that frontend's `.env.example` to `.env`; the
+URL is used by the Node-based proxy and is not included in browser bundles.
+
 The migration preserves UUIDs and existing password hashes. It never drops or
-alters source databases. Keep ClockIt and ManageIt backend folders until their
-frontends have been verified against StoreIt and the imported data has been
-checked. Users will need to sign in again after the switch because StoreIt
-issues sessions with its own `JWT_SECRET`.
+alters source databases. The imported row counts and StoreIt database health
+were verified before the legacy ClockIt and ManageIt backend folders were
+removed. Users need to sign in again after the switch because StoreIt issues
+sessions with its own `JWT_SECRET`.
