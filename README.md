@@ -11,7 +11,9 @@ own.
 backend/   Express + TypeScript API, Sequelize/PostgreSQL models, and migration tools
 ```
 
-The API runs on port `4002` by default. Authentication and user administration
+The API runs on port `4002` by default. For a single-machine deployment where
+frontends proxy to StoreIt locally, set `API_HOST=127.0.0.1` so the API is not
+available directly over the network. Authentication and user administration
 are shared under `/api/auth` and `/api/users`. App data is namespaced:
 
 - ClockIt: `/api/clockit/...`
@@ -29,6 +31,52 @@ its data contract is defined.
 3. From `backend`, run `npm install`, `npm run db:migrate`, then `npm run dev`.
 4. Before importing existing data, run `npm run data:check`. It only reads the
    source databases. Import is an explicit `npm run data:migrate` operation.
+
+## ClockIt scheduled email reports
+
+ClockIt admins can configure scheduled workbook emails from **Account >
+Notifications**. Admins choose a start date and recurrence (every N days or
+every N weeks), the report period length in days, send day/time/time zone,
+which users' entries are included, and which accounts receive the email. The
+period length is independent of the recurrence, so reports can intentionally
+overlap or leave gaps. Delivery occurs on the first configured send day after
+each report period closes. The default is every two weeks with a 14-day report
+period, Tuesday at 1:00 PM Australia/Brisbane, and all users included. The
+schedule remains disabled until an admin selects a start date and at least one
+recipient.
+
+StoreIt must have an authenticated SMTP account configured in
+`backend/.env`; these credentials are never stored in ClockIt or exposed to
+browser clients:
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=clockit-reports@example.com
+SMTP_PASSWORD=your-mail-provider-app-password
+SMTP_FROM=ClockIt Reports <clockit-reports@example.com>
+```
+
+Use the host, port, TLS mode, username, password/app password, and sender
+address provided by your email provider. Use `SMTP_SECURE=true` for providers
+requiring implicit TLS (commonly port 465); for STARTTLS on port 587 use
+`SMTP_SECURE=false`. Restart StoreIt after changing these values. The Reports
+Notifications page displays whether SMTP is configured and offers a test
+workbook email. After deploying model changes, run `npm run db:migrate` to
+create or extend the schedule, delivery-history, and dashboard-reminder tables
+before restarting the API.
+
+## ClockIt dashboard reminders
+
+Admins can create recurring reminders from **Account > Notifications**. Each
+reminder has plain-text content, a start date, and a configurable interval in
+days or weeks. Weekly schedules can select one or more weekdays; day-based
+schedules recur from the start date. Each also has a start/end time, IANA time
+zone, and enabled switch. The authenticated ClockIt Time Tracker shows enabled
+reminders only while their time window is active and refreshes them once per
+minute. Windows may cross midnight; a weekly weekday identifies the day on
+which the window starts.
 
 Each frontend has its own `frontend/.env` with `STOREIT_API_URL` for its local
 Angular development proxy. Copy that frontend's `.env.example` to `.env`; the

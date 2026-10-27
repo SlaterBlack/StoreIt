@@ -6,6 +6,9 @@ import { Task } from './Task';
 import { ManageProject } from './ManageProject';
 import { ManageTask } from './ManageTask';
 import { ManageTaskDependency } from './ManageTaskDependency';
+import { ScheduledReportConfig } from './ScheduledReportConfig';
+import { ScheduledReportDelivery } from './ScheduledReportDelivery';
+import { DashboardReminder } from './DashboardReminder';
 
 // User <-> Workspace (a user owns many workspaces)
 User.hasMany(Workspace, { foreignKey: 'ownerId', as: 'workspaces' });
@@ -86,4 +89,7 @@ export {
   ManageProject,
   ManageTask,
   ManageTaskDependency,
+  ScheduledReportConfig,
+  ScheduledReportDelivery,
+  DashboardReminder,
 };

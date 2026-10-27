@@ -1,5 +1,8 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import type { Project } from './Project';
+import type { Task } from './Task';
+import type { User } from './User';
 
 export interface TimeEntryAttributes {
   id: string;
@@ -11,6 +14,9 @@ export interface TimeEntryAttributes {
   userId: string;
   projectId: string | null;
   taskId: string | null;
+  user?: User;
+  project?: Project | null;
+  task?: Task | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -33,6 +39,9 @@ export class TimeEntry
   public userId!: string;
   public projectId!: string | null;
   public taskId!: string | null;
+  public declare user?: User;
+  public declare project?: Project | null;
+  public declare task?: Task | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }

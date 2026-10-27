@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import projectRoutes from './project.routes';
 import reportRoutes from './report.routes';
+import dashboardReminderRoutes from './dashboardReminder.routes';
 import timeEntryRoutes from './timeEntry.routes';
 import workspaceRoutes from './workspace.routes';
 
@@ -10,5 +11,6 @@ router.use('/workspaces', workspaceRoutes);
 router.use('/projects', projectRoutes);
 router.use('/time-entries', timeEntryRoutes);
 router.use('/reports', reportRoutes);
+router.use('/reminders', dashboardReminderRoutes);
 
 export default router;

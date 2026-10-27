@@ -9,17 +9,19 @@ export interface TaskAttributes {
   name: string;
   projectId: string;
   payType: PayType;
+  isBillable: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export type TaskCreationAttributes = Optional<TaskAttributes, 'id' | 'payType'>;
+export type TaskCreationAttributes = Optional<TaskAttributes, 'id' | 'payType' | 'isBillable'>;
 
 export class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
   public id!: string;
   public name!: string;
   public projectId!: string;
   public payType!: PayType;
+  public isBillable!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -43,6 +45,11 @@ Task.init(
       type: DataTypes.STRING(30),
       allowNull: false,
       defaultValue: 'hourly',
+    },
+    isBillable: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
   },
   {

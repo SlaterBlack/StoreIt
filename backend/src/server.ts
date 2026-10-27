@@ -3,16 +3,18 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import './models';
 import { User } from './models';
+import { startScheduledReportScheduler } from './services/scheduledReportScheduler';
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
 
   await ensureAdminExists();
+  startScheduledReportScheduler();
 
   const app = createApp();
-  app.listen(env.port, () => {
+  app.listen(env.port, env.apiHost, () => {
     // eslint-disable-next-line no-console
-    console.log(`StoreIt API listening on http://localhost:${env.port}`);
+    console.log(`StoreIt API listening on http://${env.apiHost}:${env.port}`);
   });
 }
 

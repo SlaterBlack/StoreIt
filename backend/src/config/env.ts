@@ -13,6 +13,7 @@ function required(name: string): string {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4002),
+  apiHost: process.env.API_HOST ?? '0.0.0.0',
   clientOrigins: (process.env.CLIENT_ORIGINS ??
     'http://localhost:2400,http://localhost:2401,http://localhost:2402')
     .split(',')
@@ -31,6 +32,15 @@ export const env = {
   jwt: {
     secret: required('JWT_SECRET'),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+  },
+
+  smtp: {
+    host: process.env.SMTP_HOST?.trim() ?? '',
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: (process.env.SMTP_SECURE ?? 'false') === 'true',
+    user: process.env.SMTP_USER?.trim() ?? '',
+    password: process.env.SMTP_PASSWORD ?? '',
+    from: process.env.SMTP_FROM?.trim() ?? '',
   },
 
   bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 10),

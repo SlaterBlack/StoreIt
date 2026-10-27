@@ -49,6 +49,16 @@ function validatePayType(value: unknown): PayType | undefined {
   return value as PayType;
 }
 
+function validateIsBillable(value: unknown): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    throw new ApiError(400, "isBillable must be a boolean");
+  }
+  return value;
+}
+
 async function findProjectTask(
   projectId: string,
   taskId: string,
@@ -205,14 +215,20 @@ export const createProjectTask = asyncHandler(
   async (req: Request, res: Response) => {
     const project = await findProject(req.params.projectId);
 
-    const { name, payType } = req.body as { name?: string; payType?: unknown };
+    const { name, payType, isBillable } = req.body as {
+      name?: string;
+      payType?: unknown;
+      isBillable?: unknown;
+    };
     const trimmedName = validateName(name, "name is required");
     const validPayType = validatePayType(payType);
+    const validIsBillable = validateIsBillable(isBillable);
 
     const task = await Task.create({
       name: trimmedName,
       projectId: project.id,
       ...(validPayType ? { payType: validPayType } : {}),
+      ...(validIsBillable !== undefined ? { isBillable: validIsBillable } : {}),
     });
     res.status(201).json({ task });
   },
@@ -224,8 +240,13 @@ export const updateProjectTask = asyncHandler(
 
     const task = await findProjectTask(project.id, req.params.taskId);
 
-    const { name, payType } = req.body as { name?: string; payType?: unknown };
+    const { name, payType, isBillable } = req.body as {
+      name?: string;
+      payType?: unknown;
+      isBillable?: unknown;
+    };
     const validPayType = validatePayType(payType);
+    const validIsBillable = validateIsBillable(isBillable);
     await task.update({
       name: validateName(
         name,
@@ -233,6 +254,7 @@ export const updateProjectTask = asyncHandler(
         "name must be between 1 and 120 characters",
       ),
       ...(validPayType ? { payType: validPayType } : {}),
+      ...(validIsBillable !== undefined ? { isBillable: validIsBillable } : {}),
     });
     res.json({ task });
   },
