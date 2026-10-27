@@ -32,6 +32,20 @@ its data contract is defined.
 4. Before importing existing data, run `npm run data:check`. It only reads the
    source databases. Import is an explicit `npm run data:migrate` operation.
 
+## Initial administrator account
+
+StoreIt checks for an admin at startup. When started from an interactive
+terminal and no admin exists, it prompts for the initial admin's name, email,
+and password; password input is hidden. A systemd service has no interactive
+terminal, so it starts without enabling public registration and logs a reminder
+to run `npm run admin:create` from `backend` in a terminal. That command opens
+the same local setup prompt.
+
+The public `/api/users` endpoint always requires an authenticated admin. StoreIt
+does not promote an existing regular user automatically. The terminal setup
+creates a new admin account and refuses to create another if an admin already
+exists.
+
 ## ClockIt scheduled email reports
 
 ClockIt admins can configure scheduled workbook emails from **Account >

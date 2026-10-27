@@ -41,13 +41,8 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(409, 'A user with that email already exists');
   }
 
-  // When nobody is authenticated this can only be the one-time bootstrap
-  // request (see requireAdminOrBootstrap) that creates the very first
-  // account, which must be an admin regardless of what was requested.
-  const effectiveRole = req.user ? role : 'admin';
-
   const passwordHash = await bcrypt.hash(password, env.bcryptSaltRounds);
-  const user = await User.create({ name: name.trim(), email, passwordHash, role: effectiveRole });
+  const user = await User.create({ name: name.trim(), email, passwordHash, role });
 
   res.status(201).json({ user: toPublicUser(user) });
 });
