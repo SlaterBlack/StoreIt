@@ -5,6 +5,7 @@ import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import clockItRoutes from './clockit.routes';
 import manageItRoutes from './manageit.routes';
+import reportRoutes from './report.routes';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/clockit', clockItRoutes);
 router.use('/manageit', manageItRoutes);
+router.use('/report', reportRoutes);
 
 export default router;

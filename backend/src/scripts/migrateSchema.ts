@@ -26,6 +26,10 @@ async function migrateSchema(): Promise<void> {
       ALTER COLUMN color SET NOT NULL
   `);
   await sequelize.query(`
+    ALTER TABLE manageit_tasks
+      ALTER COLUMN assignee TYPE varchar(500)
+  `);
+  await sequelize.query(`
     ALTER TABLE clockit_tasks
       ADD COLUMN IF NOT EXISTS is_billable boolean NOT NULL DEFAULT true
   `);

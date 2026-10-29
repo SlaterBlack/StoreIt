@@ -90,7 +90,7 @@ ManageTask.init(
       defaultValue: '#D87535',
     },
     assignee: {
-      type: DataTypes.STRING(120),
+      type: DataTypes.STRING(500),
       allowNull: false,
       defaultValue: '',
     },

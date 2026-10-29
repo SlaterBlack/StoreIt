@@ -10,6 +10,8 @@ import { TASK_STATUSES, TaskStatus } from '../models/ManageTask';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
 
+const MAX_ASSIGNEES_LENGTH = 500;
+
 function validateDate(value: unknown, label: string): string {
   if (
     typeof value !== 'string' ||
@@ -96,8 +98,14 @@ export const createProjectTask = asyncHandler(
       isMilestone?: unknown;
       parentTaskId?: unknown;
     };
-    if (typeof assignee !== 'string' || assignee.length > 120) {
-      throw new ApiError(400, 'Assignee must be 120 characters or fewer.');
+    if (
+      typeof assignee !== 'string' ||
+      assignee.length > MAX_ASSIGNEES_LENGTH
+    ) {
+      throw new ApiError(
+        400,
+        `Assignees must be ${MAX_ASSIGNEES_LENGTH} characters or fewer.`,
+      );
     }
     if (typeof isMilestone !== 'boolean') {
       throw new ApiError(400, 'Milestone must be a boolean value.');
@@ -207,8 +215,14 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     updates.name = validateTaskName(name);
   }
   if (assignee !== undefined) {
-    if (typeof assignee !== 'string' || assignee.length > 120) {
-      throw new ApiError(400, 'Assignee must be 120 characters or fewer.');
+    if (
+      typeof assignee !== 'string' ||
+      assignee.length > MAX_ASSIGNEES_LENGTH
+    ) {
+      throw new ApiError(
+        400,
+        `Assignees must be ${MAX_ASSIGNEES_LENGTH} characters or fewer.`,
+      );
     }
     updates.assignee = assignee.trim();
   }
