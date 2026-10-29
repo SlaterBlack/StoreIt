@@ -122,6 +122,9 @@ export const createProjectTask = asyncHandler(
       if (!parentTask || parentTask.projectId !== project.id) {
         throw new ApiError(400, 'Parent task must belong to the same project.');
       }
+      if (parentTask.isMilestone) {
+        throw new ApiError(400, 'Milestones cannot have subtasks.');
+      }
       if (parentTask.parentTaskId) {
         throw new ApiError(400, 'Subtasks cannot contain further subtasks.');
       }
@@ -161,6 +164,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     dueDate,
     progress,
     status,
+    isMilestone,
     isArchived,
     color,
   } = req.body as {
@@ -170,6 +174,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     dueDate?: unknown;
     progress?: unknown;
     status?: unknown;
+    isMilestone?: unknown;
     isArchived?: unknown;
     color?: unknown;
   };
@@ -180,6 +185,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     dueDate === undefined &&
     progress === undefined &&
     status === undefined &&
+    isMilestone === undefined &&
     isArchived === undefined &&
     color === undefined
   ) {
@@ -193,6 +199,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     dueDate?: string;
     progress?: number;
     status?: TaskStatus;
+    isMilestone?: boolean;
     isArchived?: boolean;
     color?: string;
   } = {};
@@ -217,6 +224,12 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
   if (status !== undefined) {
     updates.status = validateStatus(status);
   }
+  if (isMilestone !== undefined) {
+    if (typeof isMilestone !== 'boolean') {
+      throw new ApiError(400, 'Milestone must be a boolean value.');
+    }
+    updates.isMilestone = isMilestone;
+  }
   if (isArchived !== undefined) {
     if (typeof isArchived !== 'boolean') {
       throw new ApiError(400, 'Archived must be a boolean value.');
@@ -228,10 +241,14 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
   }
   const resultingStart = updates.startDate ?? task.startDate;
   const resultingDue = updates.dueDate ?? task.dueDate;
+  const resultingIsMilestone = updates.isMilestone ?? task.isMilestone;
   if (resultingDue < resultingStart) {
     throw new ApiError(400, 'Due date must be on or after the start date.');
   }
-  if (task.isMilestone && resultingStart !== resultingDue) {
+  if (resultingIsMilestone && task.parentTaskId) {
+    throw new ApiError(400, 'Milestones cannot be subtasks.');
+  }
+  if (resultingIsMilestone && resultingStart !== resultingDue) {
     throw new ApiError(400, 'Milestones must have the same start and due date.');
   }
 
@@ -251,11 +268,20 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
   } else {
     subtasks = await Task.findAll({ where: { parentTaskId: task.id } });
   }
+  if (resultingIsMilestone && subtasks.length > 0) {
+    throw new ApiError(400, 'Tasks with subtasks cannot be milestones.');
+  }
 
   const startShift = dateDifference(task.startDate, resultingStart);
   const dueShift = dateDifference(task.dueDate, resultingDue);
   const shiftSubtasks =
     subtasks.length > 0 && startShift !== 0 && startShift === dueShift;
+  const updateSubtaskColors =
+    !task.parentTaskId && updates.color !== undefined && subtasks.length > 0;
+  const completeSubtasks =
+    !task.parentTaskId &&
+    updates.status === 'complete' &&
+    subtasks.length > 0;
   if (
     subtasks.length > 0 &&
     !shiftSubtasks &&
@@ -272,15 +298,27 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
 
   await sequelize.transaction(async (transaction) => {
     await task.update(updates, { transaction });
-    if (shiftSubtasks) {
+    if (shiftSubtasks || updateSubtaskColors || completeSubtasks) {
       for (const subtask of subtasks) {
-        await subtask.update(
-          {
-            startDate: shiftDate(subtask.startDate, startShift),
-            dueDate: shiftDate(subtask.dueDate, startShift),
-          },
-          { transaction },
-        );
+        const subtaskUpdates: {
+          startDate?: string;
+          dueDate?: string;
+          color?: string;
+          status?: TaskStatus;
+          progress?: number;
+        } = {};
+        if (shiftSubtasks) {
+          subtaskUpdates.startDate = shiftDate(subtask.startDate, startShift);
+          subtaskUpdates.dueDate = shiftDate(subtask.dueDate, startShift);
+        }
+        if (updateSubtaskColors) {
+          subtaskUpdates.color = updates.color;
+        }
+        if (completeSubtasks) {
+          subtaskUpdates.status = 'complete';
+          subtaskUpdates.progress = 100;
+        }
+        await subtask.update(subtaskUpdates, { transaction });
       }
     }
   });
