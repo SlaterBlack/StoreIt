@@ -22,6 +22,19 @@ function validateDate(value: unknown, label: string): string {
   return value;
 }
 
+function dateDifference(from: string, to: string): number {
+  return (
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
+    86400000
+  );
+}
+
+function shiftDate(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return validateDate(date.toISOString().slice(0, 10), 'Shifted task date');
+}
+
 function validateProgress(value: unknown): number {
   if (
     typeof value !== 'number' ||
@@ -53,6 +66,13 @@ function validateTaskName(value: unknown): string {
     throw new ApiError(400, 'Task name must be 120 characters or fewer.');
   }
   return name;
+}
+
+function validateTaskColor(value: unknown): string {
+  if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) {
+    throw new ApiError(400, 'Task color must be a six-digit hex value.');
+  }
+  return value.toUpperCase();
 }
 
 export const createProjectTask = asyncHandler(
@@ -120,6 +140,7 @@ export const createProjectTask = asyncHandler(
       parentTaskId: parentTask?.id ?? null,
       isMilestone,
       name: validateTaskName(name),
+      color: project.color,
       assignee: assignee.trim(),
       startDate: validStart,
       dueDate: validDue,
@@ -141,6 +162,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     progress,
     status,
     isArchived,
+    color,
   } = req.body as {
     name?: unknown;
     assignee?: unknown;
@@ -149,6 +171,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     progress?: unknown;
     status?: unknown;
     isArchived?: unknown;
+    color?: unknown;
   };
   if (
     name === undefined &&
@@ -157,7 +180,8 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     dueDate === undefined &&
     progress === undefined &&
     status === undefined &&
-    isArchived === undefined
+    isArchived === undefined &&
+    color === undefined
   ) {
     throw new ApiError(400, 'Provide at least one task field to update.');
   }
@@ -170,6 +194,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     progress?: number;
     status?: TaskStatus;
     isArchived?: boolean;
+    color?: string;
   } = {};
   if (name !== undefined) {
     updates.name = validateTaskName(name);
@@ -198,6 +223,9 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     }
     updates.isArchived = isArchived;
   }
+  if (color !== undefined) {
+    updates.color = validateTaskColor(color);
+  }
   const resultingStart = updates.startDate ?? task.startDate;
   const resultingDue = updates.dueDate ?? task.dueDate;
   if (resultingDue < resultingStart) {
@@ -207,6 +235,7 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'Milestones must have the same start and due date.');
   }
 
+  let subtasks: Task[] = [];
   if (task.parentTaskId) {
     const parent = await Task.findByPk(task.parentTaskId);
     if (
@@ -220,21 +249,41 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
       );
     }
   } else {
-    const subtasks = await Task.findAll({ where: { parentTaskId: task.id } });
-    if (
-      subtasks.some(
-        (subtask) =>
-          subtask.startDate < resultingStart || subtask.dueDate > resultingDue,
-      )
-    ) {
-      throw new ApiError(
-        400,
-        'Parent task dates must contain the dates of all its subtasks.',
-      );
-    }
+    subtasks = await Task.findAll({ where: { parentTaskId: task.id } });
   }
 
-  await task.update(updates);
+  const startShift = dateDifference(task.startDate, resultingStart);
+  const dueShift = dateDifference(task.dueDate, resultingDue);
+  const shiftSubtasks =
+    subtasks.length > 0 && startShift !== 0 && startShift === dueShift;
+  if (
+    subtasks.length > 0 &&
+    !shiftSubtasks &&
+    subtasks.some(
+      (subtask) =>
+        subtask.startDate < resultingStart || subtask.dueDate > resultingDue,
+    )
+  ) {
+    throw new ApiError(
+      400,
+      'Parent task dates must contain the dates of all its subtasks.',
+    );
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    await task.update(updates, { transaction });
+    if (shiftSubtasks) {
+      for (const subtask of subtasks) {
+        await subtask.update(
+          {
+            startDate: shiftDate(subtask.startDate, startShift),
+            dueDate: shiftDate(subtask.dueDate, startShift),
+          },
+          { transaction },
+        );
+      }
+    }
+  });
   res.json({ task });
 });
 

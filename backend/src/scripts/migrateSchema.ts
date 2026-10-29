@@ -5,6 +5,27 @@ async function migrateSchema(): Promise<void> {
   await sequelize.authenticate();
   await sequelize.sync();
   await sequelize.query(`
+    ALTER TABLE manageit_tasks
+      ADD COLUMN IF NOT EXISTS color varchar(7)
+  `);
+  await sequelize.query(`
+    UPDATE manageit_tasks AS task
+    SET color = project.color
+    FROM manageit_projects AS project
+    WHERE task.project_id = project.id
+      AND task.color IS NULL
+  `);
+  await sequelize.query(`
+    UPDATE manageit_tasks
+    SET color = '#D87535'
+    WHERE color IS NULL
+  `);
+  await sequelize.query(`
+    ALTER TABLE manageit_tasks
+      ALTER COLUMN color SET DEFAULT '#D87535',
+      ALTER COLUMN color SET NOT NULL
+  `);
+  await sequelize.query(`
     ALTER TABLE clockit_tasks
       ADD COLUMN IF NOT EXISTS is_billable boolean NOT NULL DEFAULT true
   `);

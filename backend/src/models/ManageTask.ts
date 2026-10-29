@@ -11,6 +11,7 @@ export interface TaskAttributes {
   isMilestone: boolean;
   isArchived: boolean;
   name: string;
+  color: string;
   assignee: string;
   startDate: string;
   dueDate: string;
@@ -27,6 +28,7 @@ export type TaskCreationAttributes = Optional<
   | 'isMilestone'
   | 'isArchived'
   | 'assignee'
+  | 'color'
   | 'progress'
   | 'status'
   | 'createdAt'
@@ -43,6 +45,7 @@ export class ManageTask
   public isMilestone!: boolean;
   public isArchived!: boolean;
   public name!: string;
+  public color!: string;
   public assignee!: string;
   public startDate!: string;
   public dueDate!: string;
@@ -80,6 +83,11 @@ ManageTask.init(
     name: {
       type: DataTypes.STRING(120),
       allowNull: false,
+    },
+    color: {
+      type: DataTypes.STRING(7),
+      allowNull: false,
+      defaultValue: '#D87535',
     },
     assignee: {
       type: DataTypes.STRING(120),
