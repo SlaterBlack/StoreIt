@@ -3,7 +3,16 @@ import { DateTime } from 'luxon';
 import nodemailer from 'nodemailer';
 import { Op } from 'sequelize';
 import { env } from '../config/env';
-import { Project, Task, TimeEntry, User } from '../models';
+import {
+  ClockItToilPolicy,
+  ClockItToilUsage,
+  ClockItUserToilContract,
+  Project,
+  ScheduledReportConfig,
+  Task,
+  TimeEntry,
+  User,
+} from '../models';
 import type { PayType } from '../models/Task';
 
 export const DEFAULT_REPORT_TIMEZONE = 'Australia/Brisbane';
@@ -26,6 +35,13 @@ const PAY_TYPE_ORDER: PayType[] = [
   'sick-leave',
   'unpaid',
 ];
+
+interface ToilReportSettings {
+  accrualMultiplier: number;
+  payCycle: { startDate: string | null; periodDays: number };
+  users: { id: string; name: string; contractedHoursPerCycle: number | null }[];
+  usages: { userId: string; usageDate: string; hours: number }[];
+}
 
 export interface ReportEmailRecipient {
   id: string;
@@ -128,7 +144,8 @@ export async function sendScheduledReportEmail(
   }
 
   const entries = await loadPeriodEntries(period, includedUserIds);
-  const workbook = await buildReportWorkbook(entries, period, timezone);
+  const toilSettings = await loadToilReportSettings(period, includedUserIds);
+  const workbook = await buildReportWorkbook(entries, period, timezone, toilSettings);
   const transporter = nodemailer.createTransport({
     host: env.smtp.host,
     port: env.smtp.port,
@@ -158,12 +175,17 @@ export async function buildReportWorkbook(
   entries: TimeEntry[],
   period: ScheduledReportPeriod,
   timezone: string,
+  toilSettings?: ToilReportSettings,
 ): Promise<Buffer> {
-  const userTotals = new Map<string, { name: string; seconds: Record<PayType, number> }>();
+  const userTotals = new Map<
+    string,
+    { id: string; name: string; seconds: Record<PayType, number> }
+  >();
   const now = Date.now();
   for (const entry of entries) {
     const userName = entry.user?.name ?? '';
     const user = userTotals.get(entry.userId) ?? {
+      id: entry.userId,
       name: userName,
       seconds: Object.fromEntries(PAY_TYPE_ORDER.map((type) => [type, 0])) as Record<
         PayType,
@@ -175,6 +197,24 @@ export async function buildReportWorkbook(
     userTotals.set(entry.userId, user);
   }
 
+  if (toilSettings) {
+    for (const usage of toilSettings.usages) {
+      if (userTotals.has(usage.userId)) {
+        continue;
+      }
+      const user = toilSettings.users.find((item) => item.id === usage.userId);
+      if (user) {
+        userTotals.set(user.id, {
+          id: user.id,
+          name: user.name,
+          seconds: Object.fromEntries(PAY_TYPE_ORDER.map((type) => [type, 0])) as Record<
+            PayType,
+            number
+          >,
+        });
+      }
+    }
+  }
   const sortedUsers = [...userTotals.values()].sort((a, b) => a.name.localeCompare(b.name));
   const totals = Object.fromEntries(PAY_TYPE_ORDER.map((type) => [type, 0])) as Record<
     PayType,
@@ -186,23 +226,40 @@ export async function buildReportWorkbook(
     }
   }
   const paidTypes: PayType[] = ['hourly', 'public-holiday', 'annual-leave', 'sick-leave'];
-  const activeTypes = PAY_TYPE_ORDER.filter((type) => totals[type] > 0);
+  const toilTotals = toilSettings
+    ? calculateToilTotals(entries, userTotals, period, timezone, toilSettings, now)
+    : null;
   const summaryRows: (string | number)[][] = [
     ['Report period', period.startDate, period.endDate],
     [],
-    ['Name', 'Total Paid Hours', ...activeTypes.map((type) => PAY_TYPE_LABELS[type])],
+    [
+      'Name',
+      'Total Paid Hours',
+      'TOIL Accrued',
+      'TOIL Used',
+      ...PAY_TYPE_ORDER.map((type) => PAY_TYPE_LABELS[type]),
+    ],
   ];
   for (const user of sortedUsers) {
     summaryRows.push([
       safeText(user.name),
       paidTypes.reduce((sum, type) => sum + user.seconds[type], 0) / 3600,
-      ...activeTypes.map((type) => user.seconds[type] / 3600),
+      ...(toilTotals
+        ? [toilTotals.accruedHours.get(user.id) ?? 0, toilTotals.usedHours.get(user.id) ?? 0]
+        : ['', '']),
+      ...PAY_TYPE_ORDER.map((type) => user.seconds[type] / 3600),
     ]);
   }
   summaryRows.push([
     'All users',
     paidTypes.reduce((sum, type) => sum + totals[type], 0) / 3600,
-    ...activeTypes.map((type) => totals[type] / 3600),
+    ...(toilTotals
+      ? [
+          [...toilTotals.accruedHours.values()].reduce((sum, hours) => sum + hours, 0),
+          [...toilTotals.usedHours.values()].reduce((sum, hours) => sum + hours, 0),
+        ]
+      : ['', '']),
+    ...PAY_TYPE_ORDER.map((type) => totals[type] / 3600),
   ]);
 
   const detailRows: (string | number)[][] = [[
@@ -281,27 +338,195 @@ export async function buildReportWorkbook(
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
           '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
           '<numFmts count="1"><numFmt numFmtId="164" formatCode="0.00"/></numFmts>' +
-          '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>' +
+          '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
+          '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
           '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
           '<fill><patternFill patternType="gray125"/></fill></fills>' +
           '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
           '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-          '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-          '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>' +
+          '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+          '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+          '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>' +
+          '<xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>' +
           '</styleSheet>',
       ),
-      'xl/worksheets/sheet1.xml': strToU8(worksheetXml(summaryRows)),
+      'xl/worksheets/sheet1.xml': strToU8(
+        worksheetXml(summaryRows, [1], [summaryRows.length - 1], 2),
+      ),
       'xl/worksheets/sheet2.xml': strToU8(worksheetXml(detailRows)),
     }),
   );
 }
 
-function worksheetXml(rows: (string | number)[][]): string {
+async function loadToilReportSettings(
+  period: ScheduledReportPeriod,
+  includedUserIds: string[] | null,
+): Promise<ToilReportSettings> {
+  const [policy, schedule, contracts, usageRows, users] = await Promise.all([
+    ClockItToilPolicy.findByPk('default'),
+    ScheduledReportConfig.findByPk('fortnightly'),
+    ClockItUserToilContract.findAll(),
+    ClockItToilUsage.findAll({
+      where: {
+        usageDate: { [Op.gte]: period.startDate, [Op.lte]: period.endDate },
+        ...(includedUserIds === null ? {} : { userId: { [Op.in]: includedUserIds } }),
+      },
+    }),
+    User.findAll({
+      attributes: ['id', 'name'],
+      ...(includedUserIds === null ? {} : { where: { id: { [Op.in]: includedUserIds } } }),
+    }),
+  ]);
+  if (!schedule?.startDate) {
+    throw new Error(
+      'TOIL cannot be calculated for the scheduled report: set the first reporting date in ClockIt Notifications.',
+    );
+  }
+  const contractsByUserId = new Map(
+    contracts.map((contract) => [
+      contract.userId,
+      Number(contract.contractedHoursPerCycle),
+    ]),
+  );
+  return {
+    accrualMultiplier: Number(policy?.accrualMultiplier ?? 1),
+    payCycle: {
+      startDate: schedule.startDate,
+      periodDays: schedule.reportPeriodDays,
+    },
+    users: users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      contractedHoursPerCycle: contractsByUserId.get(user.id) ?? null,
+    })),
+    usages: usageRows.map((usage) => ({
+      userId: usage.userId,
+      usageDate: usage.usageDate,
+      hours: Number(usage.hours),
+    })),
+  };
+}
+
+function calculateToilTotals(
+  entries: TimeEntry[],
+  users: Map<string, { id: string; name: string; seconds: Record<PayType, number> }>,
+  period: ScheduledReportPeriod,
+  timezone: string,
+  settings: ToilReportSettings,
+  now: number,
+): { accruedHours: Map<string, number>; usedHours: Map<string, number> } {
+  const anchor = settings.payCycle.startDate;
+  const cycleDays = settings.payCycle.periodDays;
+  if (!anchor || !Number.isInteger(cycleDays) || cycleDays < 1) {
+    throw new Error('TOIL cannot be calculated: the reporting cycle settings are incomplete.');
+  }
+  const contracts = new Map(
+    settings.users.map((user) => [user.id, user.contractedHoursPerCycle]),
+  );
+  const hoursByUserDate = new Map<string, number>();
+  for (const entry of entries) {
+    if (isPayType(entry.task?.payType) && entry.task?.payType !== 'hourly') {
+      continue;
+    }
+    const date = DateTime.fromJSDate(entry.startTime).setZone(timezone).toISODate();
+    if (!date) {
+      continue;
+    }
+    const key = `${entry.userId}:${date}`;
+    hoursByUserDate.set(key, (hoursByUserDate.get(key) ?? 0) + durationSeconds(entry, now) / 3600);
+  }
+
+  const accruedHours = new Map<string, number>();
+  const usedHours = new Map<string, number>();
+  for (const [userId, user] of users) {
+    if (user.seconds.hourly > 0 && contracts.get(userId) == null) {
+      throw new Error(
+        `TOIL cannot be calculated: set contracted hours for ${user.name} in ClockIt Admin Settings.`,
+      );
+    }
+    let accrued = 0;
+    const contract = contracts.get(userId);
+    if (contract !== null && contract !== undefined) {
+      for (const segment of payCycleSegments(
+        period.startDate,
+        period.endDate,
+        anchor,
+        cycleDays,
+      )) {
+        let workedHours = 0;
+        for (const [key, hours] of hoursByUserDate) {
+          if (key.startsWith(`${userId}:`)) {
+            const date = key.slice(userId.length + 1);
+            if (date >= segment.start && date <= segment.end) {
+              workedHours += hours;
+            }
+          }
+        }
+        accrued +=
+          Math.max(0, workedHours - contract * (segment.days / cycleDays)) *
+          settings.accrualMultiplier;
+      }
+    }
+    accruedHours.set(userId, Math.round(accrued * 100) / 100);
+  }
+  for (const usage of settings.usages) {
+    usedHours.set(
+      usage.userId,
+      (usedHours.get(usage.userId) ?? 0) + usage.hours,
+    );
+  }
+  return { accruedHours, usedHours };
+}
+
+function payCycleSegments(
+  startDate: string,
+  endDate: string,
+  anchor: string,
+  cycleDays: number,
+): { start: string; end: string; days: number }[] {
+  const dayMs = 86_400_000;
+  const toMillis = (date: string) => Date.parse(`${date}T00:00:00Z`);
+  const start = toMillis(startDate);
+  const end = toMillis(endDate);
+  const anchorValue = toMillis(anchor);
+  let cycleStart =
+    anchorValue +
+    Math.floor((start - anchorValue) / (cycleDays * dayMs)) * cycleDays * dayMs;
+  const segments: { start: string; end: string; days: number }[] = [];
+  while (cycleStart <= end) {
+    const cycleEnd = cycleStart + (cycleDays - 1) * dayMs;
+    const segmentStart = Math.max(start, cycleStart);
+    const segmentEnd = Math.min(end, cycleEnd);
+    if (segmentStart <= segmentEnd) {
+      segments.push({
+        start: new Date(segmentStart).toISOString().slice(0, 10),
+        end: new Date(segmentEnd).toISOString().slice(0, 10),
+        days: Math.floor((segmentEnd - segmentStart) / dayMs) + 1,
+      });
+    }
+    cycleStart += cycleDays * dayMs;
+  }
+  return segments;
+}
+
+function worksheetXml(
+  rows: (string | number)[][],
+  boldColumns: number[] = [],
+  boldRows: number[] = [],
+  boldColumnsFromRow = 0,
+): string {
   const rowXml = rows
     .map(
       (row, rowIndex) =>
         `<row r="${rowIndex + 1}">${row
-          .map((value, columnIndex) => cellXml(value, `${columnName(columnIndex + 1)}${rowIndex + 1}`))
+          .map((value, columnIndex) =>
+            cellXml(
+              value,
+              `${columnName(columnIndex + 1)}${rowIndex + 1}`,
+              (rowIndex >= boldColumnsFromRow && boldColumns.includes(columnIndex)) ||
+                boldRows.includes(rowIndex),
+            ),
+          )
           .join('')}</row>`,
     )
     .join('');
@@ -312,12 +537,13 @@ function worksheetXml(rows: (string | number)[][]): string {
   );
 }
 
-function cellXml(value: string | number, reference: string): string {
+function cellXml(value: string | number, reference: string, bold = false): string {
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return `<c r="${reference}" s="1"><v>${value}</v></c>`;
+    return `<c r="${reference}" s="${bold ? 3 : 1}"><v>${value}</v></c>`;
   }
+  const style = bold ? ' s="2"' : '';
   const text = escapeXml(String(value)).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
-  return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${text}</t></is></c>`;
+  return `<c r="${reference}"${style} t="inlineStr"><is><t xml:space="preserve">${text}</t></is></c>`;
 }
 
 function escapeXml(value: string): string {

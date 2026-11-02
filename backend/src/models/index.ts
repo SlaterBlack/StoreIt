@@ -9,6 +9,9 @@ import { ManageTaskDependency } from './ManageTaskDependency';
 import { ScheduledReportConfig } from './ScheduledReportConfig';
 import { ScheduledReportDelivery } from './ScheduledReportDelivery';
 import { DashboardReminder } from './DashboardReminder';
+import { ClockItToilPolicy } from './ClockItToilPolicy';
+import { ClockItUserToilContract } from './ClockItUserToilContract';
+import { ClockItToilUsage } from './ClockItToilUsage';
 
 // User <-> Workspace (a user owns many workspaces)
 User.hasMany(Workspace, { foreignKey: 'ownerId', as: 'workspaces' });
@@ -33,6 +36,13 @@ Task.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
 // Task <-> TimeEntry (taskId stays nullable for entries created before task assignment was required)
 Task.hasMany(TimeEntry, { foreignKey: 'taskId', as: 'timeEntries', onDelete: 'RESTRICT' });
 TimeEntry.belongsTo(Task, { foreignKey: 'taskId', as: 'task' });
+
+User.hasOne(ClockItUserToilContract, { foreignKey: 'userId', as: 'toilContract' });
+ClockItUserToilContract.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(ClockItToilUsage, { foreignKey: 'userId', as: 'toilUsages' });
+ClockItToilUsage.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(ClockItToilUsage, { foreignKey: 'recordedBy', as: 'recordedToilUsages' });
+ClockItToilUsage.belongsTo(User, { foreignKey: 'recordedBy', as: 'recorder' });
 
 ManageProject.hasMany(ManageTask, {
   as: 'tasks',
@@ -92,4 +102,7 @@ export {
   ScheduledReportConfig,
   ScheduledReportDelivery,
   DashboardReminder,
+  ClockItToilPolicy,
+  ClockItUserToilContract,
+  ClockItToilUsage,
 };
