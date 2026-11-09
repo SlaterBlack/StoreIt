@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StoreIt Service Launcher</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="launcher">
+      <header class="brand-header">
+        <img id="brand-icon" width="48" height="48" alt="">
+        <div>
+          <p class="eyebrow">AI3D DESKTOP LAUNCHER</p>
+          <h1>StoreIt</h1>
+          <p class="subtitle">Configure and run the shared API and its PostgreSQL database.</p>
+        </div>
+        <span id="status-badge" class="status-badge" role="status">Stopped</span>
+      </header>
+
+      <form id="settings-form">
+        <section class="settings-section" aria-labelledby="database-heading">
+          <div class="section-heading">
+            <span class="section-number">01</span>
+            <div>
+              <h2 id="database-heading">PostgreSQL database</h2>
+              <p>Bundled PostgreSQL with persistent local data.</p>
+            </div>
+            <span id="database-status" class="service-status">Stopped</span>
+          </div>
+          <label class="field port-field">
+            <span>Database port</span>
+            <input id="database-port" name="databasePort" type="number" min="1" max="65535" required>
+          </label>
+          <p class="field-help">Database files stay in this computer’s application data folder. PostgreSQL listens on this computer only.</p>
+        </section>
+
+        <section class="settings-section" aria-labelledby="api-heading">
+          <div class="section-heading">
+            <span class="section-number">02</span>
+            <div>
+              <h2 id="api-heading">StoreIt API</h2>
+              <p>Shared service used by ClockIt, ManageIt, and SendIt.</p>
+            </div>
+          </div>
+          <label class="field port-field">
+            <span>API port</span>
+            <input id="api-port" name="apiPort" type="number" min="1" max="65535" required>
+          </label>
+          <p class="field-help">The default API address is <code>http://127.0.0.1:4002</code>. Frontend launchers use this default.</p>
+        </section>
+
+        <div class="notice">
+          Random database and signing keys are generated on first run and saved locally. This panel does not request email or account passwords.
+        </div>
+        <div id="error-message" class="error-message" role="alert" hidden></div>
+        <p id="api-url" class="api-url" hidden></p>
+
+        <footer class="actions">
+          <button id="stop-button" class="button button-secondary" type="button" disabled>Stop services</button>
+          <button id="open-button" class="button button-secondary" type="button" disabled>Open API status</button>
+          <button id="start-button" class="button button-primary" type="submit">Save &amp; Start</button>
+        </footer>
+      </form>
+
+      <p class="tray-note">Closing this window keeps StoreIt and PostgreSQL running in the system tray.</p>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

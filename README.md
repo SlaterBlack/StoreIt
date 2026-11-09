@@ -24,6 +24,14 @@ its data contract is defined.
 
 ## Setup
 
+For a local desktop deployment, build and run the StoreIt launcher from
+`launcher/`. It starts the bundled PostgreSQL server and API together, and
+generates the local database password and JWT signing key automatically. The
+ClockIt and ManageIt frontend launchers are maintained in their own
+repositories and connect to StoreIt at `127.0.0.1:4002` by default.
+
+For a source/development deployment:
+
 1. Create a PostgreSQL database for StoreIt and copy
    `backend/.env.example` to `backend/.env`.
 2. Set `DB_*` and `JWT_SECRET` for StoreIt. For data migration, also set the
