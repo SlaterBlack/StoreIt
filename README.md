@@ -1,6 +1,6 @@
 # StoreIt
 
-StoreIt is the shared Node.js API for ClockIt, ManageIt, and SendIt. It uses
+StoreIt is the shared Node.js API for ClockIt, ManageIt, SplatIt, and SendIt. It uses
 PostgreSQL and one shared user account store. ClockIt time-tracking data and
 ManageIt project-planning data remain separate so each app can be used on its
 own.
@@ -18,6 +18,8 @@ are shared under `/api/auth` and `/api/users`. App data is namespaced:
 
 - ClockIt: `/api/clockit/...`
 - ManageIt: `/api/manageit/...`
+- SplatIt: `/api/splatit/...` (read-only Gaussian splat files from a mounted
+  network share; see [SplatIt's setup](../SplatIt/README.md#network-scene-library))
 
 SendIt will use the shared authentication API and add its own API namespace as
 its data contract is defined.

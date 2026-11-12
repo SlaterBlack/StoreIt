@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -11,42 +11,53 @@ function required(name: string): string {
 }
 
 export const env = {
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4002),
-  apiHost: process.env.API_HOST ?? '0.0.0.0',
-  clientOrigins: (process.env.CLIENT_ORIGINS ??
-    'http://localhost:2400,http://localhost:2401,http://localhost:2402')
-    .split(',')
+  apiHost: process.env.API_HOST ?? "0.0.0.0",
+  trustProxy: process.env.TRUST_PROXY?.trim() || false,
+  clientOrigins: (
+    process.env.CLIENT_ORIGINS ??
+    "http://localhost:2400,http://localhost:2401,http://localhost:2402"
+  )
+    .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
+  splatIt: {
+    sceneRoot: process.env.SPLATIT_SCENE_ROOT ?? "/MaxResources/GaussianSplats",
+    allowedOrigins: (process.env.SPLATIT_ALLOWED_ORIGINS ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    signingSecret: process.env.SPLATIT_SIGNING_SECRET ?? "",
+  },
 
   db: {
-    host: required('DB_HOST'),
+    host: required("DB_HOST"),
     port: Number(process.env.DB_PORT ?? 5432),
-    name: required('DB_NAME'),
-    user: required('DB_USER'),
-    password: required('DB_PASSWORD'),
-    logging: (process.env.DB_LOGGING ?? 'false') === 'true',
+    name: required("DB_NAME"),
+    user: required("DB_USER"),
+    password: required("DB_PASSWORD"),
+    logging: (process.env.DB_LOGGING ?? "false") === "true",
   },
 
   jwt: {
-    secret: required('JWT_SECRET'),
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+    secret: required("JWT_SECRET"),
+    expiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
   },
 
   smtp: {
-    host: process.env.SMTP_HOST?.trim() ?? '',
+    host: process.env.SMTP_HOST?.trim() ?? "",
     port: Number(process.env.SMTP_PORT ?? 587),
-    secure: (process.env.SMTP_SECURE ?? 'false') === 'true',
-    user: process.env.SMTP_USER?.trim() ?? '',
-    password: process.env.SMTP_PASSWORD ?? '',
-    from: process.env.SMTP_FROM?.trim() ?? '',
+    secure: (process.env.SMTP_SECURE ?? "false") === "true",
+    user: process.env.SMTP_USER?.trim() ?? "",
+    password: process.env.SMTP_PASSWORD ?? "",
+    from: process.env.SMTP_FROM?.trim() ?? "",
   },
 
   bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 10),
 };
 
-export function sourceDatabase(prefix: 'CLOCKIT_SOURCE' | 'MANAGEIT_SOURCE') {
+export function sourceDatabase(prefix: "CLOCKIT_SOURCE" | "MANAGEIT_SOURCE") {
   const name = `${prefix}_DB`;
   const requiredSourceValue = (key: string): string => {
     const value = process.env[`${name}_${key}`];
@@ -57,10 +68,10 @@ export function sourceDatabase(prefix: 'CLOCKIT_SOURCE' | 'MANAGEIT_SOURCE') {
   };
 
   return {
-    host: requiredSourceValue('HOST'),
+    host: requiredSourceValue("HOST"),
     port: Number(process.env[`${name}_PORT`] ?? 5432),
-    name: requiredSourceValue('NAME'),
-    user: requiredSourceValue('USER'),
-    password: requiredSourceValue('PASSWORD'),
+    name: requiredSourceValue("NAME"),
+    user: requiredSourceValue("USER"),
+    password: requiredSourceValue("PASSWORD"),
   };
 }

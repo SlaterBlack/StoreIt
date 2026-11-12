@@ -311,14 +311,7 @@ export const stopTimeEntry = asyncHandler(async (req: Request, res: Response) =>
   res.json({ timeEntry });
 });
 
-export const updateTimeEntry = asyncHandler(async (req: Request, res: Response) => {
-  const timeEntry = await TimeEntry.findOne({
-    where: { id: req.params.id, userId: req.user?.id },
-  });
-  if (!timeEntry) {
-    throw new ApiError(404, 'Time entry not found');
-  }
-
+async function applyTimeEntryUpdate(req: Request, timeEntry: TimeEntry): Promise<void> {
   const { description, taskId, isBillable, startTime, endTime } = req.body as {
     description?: string;
     taskId?: string;
@@ -354,7 +347,7 @@ export const updateTimeEntry = asyncHandler(async (req: Request, res: Response) 
   if (parsedEndTime === null && timeEntry.endTime !== null) {
     const runningEntry = await TimeEntry.findOne({
       where: {
-        userId: req.user!.id,
+        userId: timeEntry.userId,
         endTime: { [Op.is]: null },
       },
     });
@@ -374,6 +367,27 @@ export const updateTimeEntry = asyncHandler(async (req: Request, res: Response) 
       ? Math.round((parsedEndTime.getTime() - parsedStartTime.getTime()) / 1000)
       : null,
   });
+}
+
+export const updateTimeEntry = asyncHandler(async (req: Request, res: Response) => {
+  const timeEntry = await TimeEntry.findOne({
+    where: { id: req.params.id, userId: req.user?.id },
+  });
+  if (!timeEntry) {
+    throw new ApiError(404, 'Time entry not found');
+  }
+
+  await applyTimeEntryUpdate(req, timeEntry);
+  res.json({ timeEntry });
+});
+
+export const adminUpdateTimeEntry = asyncHandler(async (req: Request, res: Response) => {
+  const timeEntry = await TimeEntry.findByPk(req.params.id);
+  if (!timeEntry) {
+    throw new ApiError(404, 'Time entry not found');
+  }
+
+  await applyTimeEntryUpdate(req, timeEntry);
   res.json({ timeEntry });
 });
 
