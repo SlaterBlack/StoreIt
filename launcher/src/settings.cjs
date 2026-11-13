@@ -10,9 +10,9 @@ const DEFAULTS = {
   databasePort: 5432,
   databaseName: 'storeit',
   databaseUser: 'storeit',
-  clockItPublicUrl: 'https://clockit.ai3d.com.au/',
-  manageItPublicUrl: 'https://manageit.ai3d.com.au/',
-  splatItPublicUrl: 'https://splatit.ai3d.com.au/',
+  clockItPublicUrl: '',
+  manageItPublicUrl: '',
+  splatItPublicUrl: '',
 };
 
 function parsePort(value, label) {
@@ -33,35 +33,29 @@ function validateSettings(input) {
     apiPort,
     databasePort,
     clockItPublicUrl: parsePublicUrl(
-      input.clockItPublicUrl ?? DEFAULTS.clockItPublicUrl,
+      input.clockItPublicUrl ?? '',
       'ClockIt public URL',
     ),
     manageItPublicUrl: parsePublicUrl(
-      input.manageItPublicUrl ?? DEFAULTS.manageItPublicUrl,
+      input.manageItPublicUrl ?? '',
       'ManageIt public URL',
     ),
     splatItPublicUrl: parsePublicUrl(
-      input.splatItPublicUrl ?? DEFAULTS.splatItPublicUrl,
+      input.splatItPublicUrl ?? '',
       'SplatIt public URL',
     ),
   };
 }
 
-function migrateClockItPublicUrl(value) {
-  const trimmedValue = value?.trim();
-  if (
-    trimmedValue === 'https://clockit.ai3d.com.au:2400' ||
-    trimmedValue === 'https://clockit.ai3d.com.au:2400/'
-  ) {
-    return DEFAULTS.clockItPublicUrl;
-  }
-  return value ?? DEFAULTS.clockItPublicUrl;
-}
-
 function parsePublicUrl(value, label) {
+  const trimmedValue = String(value ?? '').trim();
+  if (!trimmedValue) {
+    return '';
+  }
+
   let url;
   try {
-    url = new URL(String(value).trim());
+    url = new URL(trimmedValue);
   } catch {
     throw new Error(`${label} must be an absolute HTTP or HTTPS URL.`);
   }
@@ -100,9 +94,9 @@ function readSettingsFile(envPath) {
   const settings = validateSettings({
     apiPort: values.PORT ?? DEFAULTS.apiPort,
     databasePort: values.DB_PORT ?? DEFAULTS.databasePort,
-    clockItPublicUrl: migrateClockItPublicUrl(values.CLOCKIT_PUBLIC_URL),
-    manageItPublicUrl: values.MANAGEIT_PUBLIC_URL ?? DEFAULTS.manageItPublicUrl,
-    splatItPublicUrl: values.SPLATIT_PUBLIC_URL ?? DEFAULTS.splatItPublicUrl,
+    clockItPublicUrl: values.CLOCKIT_PUBLIC_URL,
+    manageItPublicUrl: values.MANAGEIT_PUBLIC_URL,
+    splatItPublicUrl: values.SPLATIT_PUBLIC_URL,
   });
 
   return {

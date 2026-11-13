@@ -33,14 +33,15 @@ router.get(
   asyncHandler(async (_req, res) => {
     const serviceResults = await Promise.all(
       env.services.map(async (service) => {
-        if (!(await isServiceRunning(service.publicUrl))) {
+        const publicUrl = service.publicUrl;
+        if (!publicUrl || !(await isServiceRunning(publicUrl))) {
           return null;
         }
         return {
           id: service.id,
           name: service.name,
-          url: service.publicUrl,
-          logoUrl: new URL(service.logoPath, service.publicUrl).toString(),
+          url: publicUrl,
+          logoUrl: new URL(service.logoPath, publicUrl).toString(),
         };
       }),
     );

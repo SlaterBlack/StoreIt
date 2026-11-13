@@ -29,7 +29,7 @@ The portable Windows `.exe` and Linux AppImage are written to `launcher/release/
 
 ## Configuration and data
 
-The setup panel configures the API and PostgreSQL ports and the public URLs for ClockIt, ManageIt, and SplatIt. Defaults are StoreIt API `4002`, PostgreSQL `5432`, ClockIt `https://clockit.ai3d.com.au/`, ManageIt `https://manageit.ai3d.com.au/`, and SplatIt `https://splatit.ai3d.com.au/`. The public URLs are written to the generated `.env` and used by the API to discover running services. The API and database bind to loopback. The launcher generates and saves a random PostgreSQL password and JWT signing secret on first run. It does not collect administrator email/password or SMTP credentials.
+The setup panel configures the API and PostgreSQL ports and optional public URLs for ClockIt, ManageIt, and SplatIt. Public URLs are blank by default; only configured services that respond are shown in the service switcher. The URLs are written to the generated `.env` and used by the API to discover running services. Defaults are StoreIt API `4002` and PostgreSQL `5432`. The API and database bind to loopback. The launcher generates and saves a random PostgreSQL password and JWT signing secret on first run. It does not collect administrator email/password or SMTP credentials.
 
 PostgreSQL data and the generated `.env` are stored in the StoreIt Launcher's operating-system application data directory and persist across updates. Do not remove that data directory unless you intend to delete the local StoreIt database.
 

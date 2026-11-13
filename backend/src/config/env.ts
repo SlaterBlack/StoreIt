@@ -10,8 +10,12 @@ function required(name: string): string {
   return value;
 }
 
-function servicePublicUrl(name: string, defaultValue: string): string {
-  const value = process.env[name]?.trim() || defaultValue;
+function servicePublicUrl(name: string): string | null {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return null;
+  }
+
   let url: URL;
   try {
     url = new URL(value);
@@ -54,28 +58,19 @@ export const env = {
     {
       id: "clockit",
       name: "ClockIt",
-      publicUrl: servicePublicUrl(
-        "CLOCKIT_PUBLIC_URL",
-        "https://clockit.ai3d.com.au/",
-      ),
+      publicUrl: servicePublicUrl("CLOCKIT_PUBLIC_URL"),
       logoPath: "/ClockItLogo_32x32.png",
     },
     {
       id: "manageit",
       name: "ManageIt",
-      publicUrl: servicePublicUrl(
-        "MANAGEIT_PUBLIC_URL",
-        "https://manageit.ai3d.com.au/",
-      ),
+      publicUrl: servicePublicUrl("MANAGEIT_PUBLIC_URL"),
       logoPath: "/ManageItLogo_32x32.png",
     },
     {
       id: "splatit",
       name: "SplatIt",
-      publicUrl: servicePublicUrl(
-        "SPLATIT_PUBLIC_URL",
-        "https://splatit.ai3d.com.au/",
-      ),
+      publicUrl: servicePublicUrl("SPLATIT_PUBLIC_URL"),
       logoPath: "/SplatItLogo_32.png",
     },
   ],
