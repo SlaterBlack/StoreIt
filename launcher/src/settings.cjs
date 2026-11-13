@@ -10,7 +10,7 @@ const DEFAULTS = {
   databasePort: 5432,
   databaseName: 'storeit',
   databaseUser: 'storeit',
-  clockItPublicUrl: 'https://clockit.ai3d.com.au:2400/',
+  clockItPublicUrl: 'https://clockit.ai3d.com.au/',
   manageItPublicUrl: 'https://manageit.ai3d.com.au/',
   splatItPublicUrl: 'https://splatit.ai3d.com.au/',
 };
@@ -45,6 +45,17 @@ function validateSettings(input) {
       'SplatIt public URL',
     ),
   };
+}
+
+function migrateClockItPublicUrl(value) {
+  const trimmedValue = value?.trim();
+  if (
+    trimmedValue === 'https://clockit.ai3d.com.au:2400' ||
+    trimmedValue === 'https://clockit.ai3d.com.au:2400/'
+  ) {
+    return DEFAULTS.clockItPublicUrl;
+  }
+  return value ?? DEFAULTS.clockItPublicUrl;
 }
 
 function parsePublicUrl(value, label) {
@@ -89,7 +100,7 @@ function readSettingsFile(envPath) {
   const settings = validateSettings({
     apiPort: values.PORT ?? DEFAULTS.apiPort,
     databasePort: values.DB_PORT ?? DEFAULTS.databasePort,
-    clockItPublicUrl: values.CLOCKIT_PUBLIC_URL ?? DEFAULTS.clockItPublicUrl,
+    clockItPublicUrl: migrateClockItPublicUrl(values.CLOCKIT_PUBLIC_URL),
     manageItPublicUrl: values.MANAGEIT_PUBLIC_URL ?? DEFAULTS.manageItPublicUrl,
     splatItPublicUrl: values.SPLATIT_PUBLIC_URL ?? DEFAULTS.splatItPublicUrl,
   });

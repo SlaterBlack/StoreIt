@@ -18,7 +18,7 @@ test('uses StoreIt service defaults and user-data paths', () => {
   assert.deepEqual(validateSettings(DEFAULTS), {
     apiPort: 4002,
     databasePort: 5432,
-    clockItPublicUrl: 'https://clockit.ai3d.com.au:2400/',
+    clockItPublicUrl: 'https://clockit.ai3d.com.au/',
     manageItPublicUrl: 'https://manageit.ai3d.com.au/',
     splatItPublicUrl: 'https://splatit.ai3d.com.au/',
   });
@@ -54,7 +54,7 @@ test('generates persistent private secrets and exposes ports only', async (t) =>
   assert.deepEqual(publicSettings(first), {
     apiPort: 4002,
     databasePort: 5432,
-    clockItPublicUrl: 'https://clockit.ai3d.com.au:2400/',
+    clockItPublicUrl: 'https://clockit.ai3d.com.au/',
     manageItPublicUrl: 'https://manageit.ai3d.com.au/',
     splatItPublicUrl: 'https://splatit.ai3d.com.au/',
   });
@@ -67,7 +67,7 @@ test('generates persistent private secrets and exposes ports only', async (t) =>
   const content = await readFile(envPath, 'utf8');
   assert.match(content, /PORT=4002/);
   assert.match(content, /DB_PORT=5432/);
-  assert.match(content, /CLOCKIT_PUBLIC_URL="https:\/\/clockit\.ai3d\.com\.au:2400\/"/);
+  assert.match(content, /CLOCKIT_PUBLIC_URL="https:\/\/clockit\.ai3d\.com\.au\/"/);
   assert.match(content, /MANAGEIT_PUBLIC_URL="https:\/\/manageit\.ai3d\.com\.au\/"/);
   assert.match(content, /SPLATIT_PUBLIC_URL="https:\/\/splatit\.ai3d\.com\.au\/"/);
   assert.doesNotMatch(content, /SMTP_(?:USER|PASSWORD)|ADMIN_(?:EMAIL|PASSWORD)/);
@@ -92,4 +92,14 @@ test('preserves public URLs from existing launcher settings', async (t) => {
   assert.equal(settings.clockItPublicUrl, 'http://localhost:2400/');
   assert.equal(settings.manageItPublicUrl, 'https://manage.example.test/');
   assert.equal(settings.splatItPublicUrl, 'https://splat.example.test/');
+});
+
+test('migrates the obsolete ClockIt port from saved launcher settings', async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'storeit-launcher-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const envPath = settingsFileFor(directory);
+  await writeFile(envPath, 'CLOCKIT_PUBLIC_URL=https://clockit.ai3d.com.au:2400/\n');
+
+  const settings = readSettingsFile(envPath);
+  assert.equal(settings.clockItPublicUrl, 'https://clockit.ai3d.com.au/');
 });

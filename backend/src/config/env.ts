@@ -56,7 +56,7 @@ export const env = {
       name: "ClockIt",
       publicUrl: servicePublicUrl(
         "CLOCKIT_PUBLIC_URL",
-        "https://clockit.ai3d.com.au:2400/",
+        "https://clockit.ai3d.com.au/",
       ),
       logoPath: "/ClockItLogo_32x32.png",
     },
