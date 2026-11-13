@@ -70,13 +70,10 @@ export const startTimeEntry = asyncHandler(async (req: Request, res: Response) =
     isBillable?: boolean;
   };
 
-  if (!taskId) {
-    throw new ApiError(400, 'taskId is required before a timer can be started');
-  }
   if (isBillable !== undefined && typeof isBillable !== 'boolean') {
     throw new ApiError(400, 'isBillable must be a boolean');
   }
-  const task = await findTask(taskId);
+  const task = taskId ? await findTask(taskId) : null;
 
   const runningEntry = await TimeEntry.findOne({
     where: { userId: req.user!.id, endTime: { [Op.is]: null } },
@@ -87,9 +84,9 @@ export const startTimeEntry = asyncHandler(async (req: Request, res: Response) =
 
   const timeEntry = await TimeEntry.create({
     description: description ?? '',
-    projectId: task.projectId,
-    taskId: task.id,
-    isBillable: isBillable ?? task.isBillable,
+    projectId: task?.projectId ?? null,
+    taskId: task?.id ?? null,
+    isBillable: isBillable ?? task?.isBillable ?? false,
     startTime: new Date(),
     userId: req.user!.id,
   });
@@ -360,7 +357,11 @@ async function applyTimeEntryUpdate(req: Request, timeEntry: TimeEntry): Promise
     ...(description !== undefined ? { description } : {}),
     taskId: task.id,
     projectId: task.projectId,
-    ...(isBillable !== undefined ? { isBillable } : {}),
+    ...(isBillable !== undefined
+      ? { isBillable }
+      : timeEntry.taskId === null && taskId !== undefined
+        ? { isBillable: task.isBillable }
+        : {}),
     startTime: parsedStartTime,
     endTime: parsedEndTime,
     durationSeconds: parsedEndTime
