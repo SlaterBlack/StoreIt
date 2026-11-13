@@ -10,6 +10,9 @@ const DEFAULTS = {
   databasePort: 5432,
   databaseName: 'storeit',
   databaseUser: 'storeit',
+  clockItPublicUrl: 'https://clockit.ai3d.com.au:2400/',
+  manageItPublicUrl: 'https://manageit.ai3d.com.au/',
+  splatItPublicUrl: 'https://splatit.ai3d.com.au/',
 };
 
 function parsePort(value, label) {
@@ -26,13 +29,50 @@ function validateSettings(input) {
   if (apiPort === databasePort) {
     throw new Error('The API port and PostgreSQL port must be different.');
   }
-  return { apiPort, databasePort };
+  return {
+    apiPort,
+    databasePort,
+    clockItPublicUrl: parsePublicUrl(
+      input.clockItPublicUrl ?? DEFAULTS.clockItPublicUrl,
+      'ClockIt public URL',
+    ),
+    manageItPublicUrl: parsePublicUrl(
+      input.manageItPublicUrl ?? DEFAULTS.manageItPublicUrl,
+      'ManageIt public URL',
+    ),
+    splatItPublicUrl: parsePublicUrl(
+      input.splatItPublicUrl ?? DEFAULTS.splatItPublicUrl,
+      'SplatIt public URL',
+    ),
+  };
+}
+
+function parsePublicUrl(value, label) {
+  let url;
+  try {
+    url = new URL(String(value).trim());
+  } catch {
+    throw new Error(`${label} must be an absolute HTTP or HTTPS URL.`);
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error(`${label} must be an absolute HTTP or HTTPS URL without credentials or query parameters.`);
+  }
+  return url.toString();
 }
 
 function publicSettings(config) {
   return {
     apiPort: config.apiPort,
     databasePort: config.databasePort,
+    clockItPublicUrl: config.clockItPublicUrl,
+    manageItPublicUrl: config.manageItPublicUrl,
+    splatItPublicUrl: config.splatItPublicUrl,
   };
 }
 
@@ -49,6 +89,9 @@ function readSettingsFile(envPath) {
   const settings = validateSettings({
     apiPort: values.PORT ?? DEFAULTS.apiPort,
     databasePort: values.DB_PORT ?? DEFAULTS.databasePort,
+    clockItPublicUrl: values.CLOCKIT_PUBLIC_URL ?? DEFAULTS.clockItPublicUrl,
+    manageItPublicUrl: values.MANAGEIT_PUBLIC_URL ?? DEFAULTS.manageItPublicUrl,
+    splatItPublicUrl: values.SPLATIT_PUBLIC_URL ?? DEFAULTS.splatItPublicUrl,
   });
 
   return {
@@ -84,6 +127,9 @@ function serializeSettings(config) {
     `DB_USER=${quoteEnvValue(DEFAULTS.databaseUser)}`,
     `DB_PASSWORD=${quoteEnvValue(config.databasePassword)}`,
     'DB_LOGGING=false',
+    `CLOCKIT_PUBLIC_URL=${quoteEnvValue(config.clockItPublicUrl)}`,
+    `MANAGEIT_PUBLIC_URL=${quoteEnvValue(config.manageItPublicUrl)}`,
+    `SPLATIT_PUBLIC_URL=${quoteEnvValue(config.splatItPublicUrl)}`,
     `JWT_SECRET=${quoteEnvValue(config.jwtSecret)}`,
     'JWT_EXPIRES_IN=1d',
     'BCRYPT_SALT_ROUNDS=10',

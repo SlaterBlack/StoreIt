@@ -51,6 +51,31 @@
           <p class="field-help">The default API address is <code>http://127.0.0.1:4002</code>. Frontend launchers use this default.</p>
         </section>
 
+        <section class="settings-section" aria-labelledby="services-heading">
+          <div class="section-heading">
+            <span class="section-number">03</span>
+            <div>
+              <h2 id="services-heading">Linked services</h2>
+              <p>Public addresses used by the service switcher in each app.</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>ClockIt public URL</span>
+              <input id="clockit-public-url" name="clockItPublicUrl" type="url" required>
+            </label>
+            <label class="field">
+              <span>ManageIt public URL</span>
+              <input id="manageit-public-url" name="manageItPublicUrl" type="url" required>
+            </label>
+            <label class="field">
+              <span>SplatIt public URL</span>
+              <input id="splatit-public-url" name="splatItPublicUrl" type="url" required>
+            </label>
+          </div>
+          <p class="field-help">Only services responding at these URLs appear in the switcher.</p>
+        </section>
+
         <div class="notice">
           Random database and signing keys are generated on first run and saved locally. This panel does not request email or account passwords.
         </div>

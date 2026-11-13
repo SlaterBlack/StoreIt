@@ -5,6 +5,9 @@ const elements = {
   databaseStatus: document.getElementById('database-status'),
   databasePort: document.getElementById('database-port'),
   apiPort: document.getElementById('api-port'),
+  clockItPublicUrl: document.getElementById('clockit-public-url'),
+  manageItPublicUrl: document.getElementById('manageit-public-url'),
+  splatItPublicUrl: document.getElementById('splatit-public-url'),
   apiUrl: document.getElementById('api-url'),
   error: document.getElementById('error-message'),
   startButton: document.getElementById('start-button'),
@@ -31,6 +34,9 @@ function renderState(state) {
   if (state.settings) {
     elements.databasePort.value = state.settings.databasePort;
     elements.apiPort.value = state.settings.apiPort;
+    elements.clockItPublicUrl.value = state.settings.clockItPublicUrl;
+    elements.manageItPublicUrl.value = state.settings.manageItPublicUrl;
+    elements.splatItPublicUrl.value = state.settings.splatItPublicUrl;
   }
   elements.apiUrl.textContent = `API health: ${state.apiUrl}`;
   elements.apiUrl.hidden = !state.running;
@@ -46,6 +52,9 @@ elements.form.addEventListener('submit', async (event) => {
   const result = await window.launcher.start({
     apiPort: elements.apiPort.value,
     databasePort: elements.databasePort.value,
+    clockItPublicUrl: elements.clockItPublicUrl.value,
+    manageItPublicUrl: elements.manageItPublicUrl.value,
+    splatItPublicUrl: elements.splatItPublicUrl.value,
   });
   elements.startButton.disabled = false;
   if (!result.ok) showError(result.error);

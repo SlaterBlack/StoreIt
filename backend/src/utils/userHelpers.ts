@@ -1,4 +1,4 @@
-import { User, UserRole } from '../models/User';
+import { User, UserRole, UserTheme } from '../models/User';
 
 export const MIN_PASSWORD_LENGTH = 8;
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,6 +12,16 @@ export function isValidRole(role: unknown): role is UserRole {
   return role === 'admin' || role === 'user';
 }
 
+export function isValidTheme(theme: unknown): theme is UserTheme {
+  return theme === 'default' || theme === 'retro';
+}
+
 export function toPublicUser(user: User) {
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    theme: user.theme,
+  };
 }

@@ -96,7 +96,7 @@ function createTray() {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 640,
-    height: 640,
+    height: 800,
     minWidth: 580,
     minHeight: 580,
     title: 'StoreIt Service Launcher',
@@ -158,6 +158,9 @@ function backendEnvironment(config) {
     DB_USER: DEFAULTS.databaseUser,
     DB_PASSWORD: config.databasePassword,
     DB_LOGGING: 'false',
+    CLOCKIT_PUBLIC_URL: config.clockItPublicUrl,
+    MANAGEIT_PUBLIC_URL: config.manageItPublicUrl,
+    SPLATIT_PUBLIC_URL: config.splatItPublicUrl,
     JWT_SECRET: config.jwtSecret,
     JWT_EXPIRES_IN: '1d',
     BCRYPT_SALT_ROUNDS: '10',

@@ -8,6 +8,7 @@ import { signToken } from '../utils/jwt';
 import {
   EMAIL_PATTERN,
   MIN_PASSWORD_LENGTH,
+  isValidTheme,
   normalizeEmail,
   toPublicUser,
 } from '../utils/userHelpers';
@@ -44,10 +45,11 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email: rawEmail, password } = req.body as {
+  const { name, email: rawEmail, password, theme: rawTheme } = req.body as {
     name?: string;
     email?: string;
     password?: string;
+    theme?: unknown;
   };
 
   const user = await User.findByPk(req.user?.id);
@@ -81,7 +83,19 @@ export const updateMe = asyncHandler(async (req: Request, res: Response) => {
     user.passwordHash = await bcrypt.hash(password, env.bcryptSaltRounds);
   }
 
-  if (name === undefined && rawEmail === undefined && password === undefined) {
+  if (rawTheme !== undefined) {
+    if (!isValidTheme(rawTheme)) {
+      throw new ApiError(400, "theme must be 'default' or 'retro'");
+    }
+    user.theme = rawTheme;
+  }
+
+  if (
+    name === undefined &&
+    rawEmail === undefined &&
+    password === undefined &&
+    rawTheme === undefined
+  ) {
     throw new ApiError(400, 'Provide at least one profile field to update');
   }
 

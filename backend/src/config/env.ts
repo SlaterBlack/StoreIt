@@ -10,6 +10,26 @@ function required(name: string): string {
   return value;
 }
 
+function servicePublicUrl(name: string, defaultValue: string): string {
+  const value = process.env[name]?.trim() || defaultValue;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be an absolute HTTP or HTTPS URL.`);
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error(`${name} must be an absolute HTTP or HTTPS URL without credentials or query parameters.`);
+  }
+  return url.toString();
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4002),
@@ -30,6 +50,35 @@ export const env = {
       .filter(Boolean),
     signingSecret: process.env.SPLATIT_SIGNING_SECRET ?? "",
   },
+  services: [
+    {
+      id: "clockit",
+      name: "ClockIt",
+      publicUrl: servicePublicUrl(
+        "CLOCKIT_PUBLIC_URL",
+        "https://clockit.ai3d.com.au:2400/",
+      ),
+      logoPath: "/ClockItLogo_32x32.png",
+    },
+    {
+      id: "manageit",
+      name: "ManageIt",
+      publicUrl: servicePublicUrl(
+        "MANAGEIT_PUBLIC_URL",
+        "https://manageit.ai3d.com.au/",
+      ),
+      logoPath: "/ManageItLogo_32x32.png",
+    },
+    {
+      id: "splatit",
+      name: "SplatIt",
+      publicUrl: servicePublicUrl(
+        "SPLATIT_PUBLIC_URL",
+        "https://splatit.ai3d.com.au/",
+      ),
+      logoPath: "/SplatItLogo_32.png",
+    },
+  ],
 
   db: {
     host: required("DB_HOST"),

@@ -24,6 +24,18 @@ are shared under `/api/auth` and `/api/users`. App data is namespaced:
 SendIt will use the shared authentication API and add its own API namespace as
 its data contract is defined.
 
+The service switcher in ClockIt, ManageIt, and SplatIt reads `/api/services`.
+Set `CLOCKIT_PUBLIC_URL`, `MANAGEIT_PUBLIC_URL`, and `SPLATIT_PUBLIC_URL` in
+`backend/.env` to the public app URLs. StoreIt checks each configured URL and
+returns only the services that respond successfully; the same URL is used for
+navigation. The StoreIt launcher exposes these URL settings and saves them in
+its generated `.env` file.
+
+Each account's selected Default or Retro theme is stored in StoreIt and shared
+across ClockIt, ManageIt, and SplatIt. On first sign-in, an existing local theme
+initializes the account preference if it has not been set yet. The viewer
+background color remains a local SplatIt preference.
+
 ## Setup
 
 For a local desktop deployment, build and run the StoreIt launcher from

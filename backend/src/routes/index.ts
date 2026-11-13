@@ -7,6 +7,7 @@ import clockItRoutes from "./clockit.routes";
 import manageItRoutes from "./manageit.routes";
 import reportRoutes from "./report.routes";
 import splatItRoutes from "./splatit.routes";
+import serviceRoutes from "./services.routes";
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use("/clockit", clockItRoutes);
 router.use("/manageit", manageItRoutes);
 router.use("/report", reportRoutes);
 router.use("/splatit", splatItRoutes);
+router.use("/services", serviceRoutes);
 
 export default router;

@@ -5,6 +5,10 @@ async function migrateSchema(): Promise<void> {
   await sequelize.authenticate();
   await sequelize.sync();
   await sequelize.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS theme varchar(16) DEFAULT NULL
+  `);
+  await sequelize.query(`
     ALTER TABLE manageit_tasks
       ADD COLUMN IF NOT EXISTS color varchar(7)
   `);
